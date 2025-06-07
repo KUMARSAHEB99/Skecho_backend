@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String          @id @default(uuid())
+  firebaseUid      String          @unique
+  email            String          @unique
+  name             String
+  phone            String?
+  phoneVerified    Boolean         @default(false)
+  address          String?
+  profileCompleted Boolean         @default(false)
+  isSeller         Boolean         @default(false)
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  sellerProfile    SellerProfile?
+
+  @@index([firebaseUid])
+}
+
+model SellerProfile {
+  id               String    @id @default(uuid())
+  userId           String    @unique
+  bio              String?
+  portfolioImages  String[]  // array of image URLs
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user             User      @relation(fields: [userId], references: [id])
+}
