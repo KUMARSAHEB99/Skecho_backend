@@ -88,6 +88,8 @@ router.get('/', async (req, res) => {
     ]);
 
     console.log(`Found ${products.length} products`);
+    console.log(products);
+    
     res.json({
       products,
       total,
@@ -124,7 +126,9 @@ router.get('/:id', async (req, res) => {
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
-
+    // console.log("product iss------------------");
+    // console.log(product);
+    
     res.json(product);
   } catch (error) {
     console.error('Error fetching product:', error);
@@ -193,13 +197,24 @@ router.post('/',
       }
 
       // Prepare image URLs array
-      const imageUrls = [
-        // Get the first URL from mainImage array if it exists
-        ...(uploadResults.mainImage?.[0] ? [uploadResults.mainImage[0]] : []),
-        // Get the URLs from additionalImages array if they exist
-        ...(uploadResults.additionalImages || [])
-      ].filter(url => typeof url === 'string');
-
+      // const imageUrls = [
+      //   // Get the first URL from mainImage array if it exists
+      //   ...(uploadResults.mainImage || []),
+      //   // Get the URLs from additionalImages array if they exist
+      //   ...(uploadResults.additionalImages || [])
+      // ].filter(url => typeof url === 'string');
+        if(!uploadResults.mainImage){
+          console.error('couldnt get main image');
+          return res.status(400).json({ error: 'Failed to upload images' });
+        }
+        let imageUrls=[];
+        imageUrls.push(uploadResults.mainImage);
+        if(uploadResults.additionalImages){
+          uploadResults.additionalImages.forEach(img => {
+            imageUrls.push(img)
+          });
+        }
+        
       // Create product with uploaded image URLs
       const product = await prisma.product.create({
         data: {
@@ -261,9 +276,6 @@ router.put('/:id',
       }
 
       if (existingProduct.seller.userId !== req.user.id) {
-       
-        
-        
         return res.status(403).json({ error: 'Not authorized to update this product' });
       }
 
@@ -296,6 +308,19 @@ router.put('/:id',
         }
       }
 
+      // Construct the new images array
+      let newImages = [...existingProduct.images];
+
+      // If a new main image is uploaded, it replaces the old one
+      if (uploadResults.mainImage && uploadResults.mainImage.length > 0) {
+        newImages[0] = uploadResults.mainImage[0];
+      }
+
+      // If new additional images are uploaded, they are added
+      if (uploadResults.additionalImages && uploadResults.additionalImages.length > 0) {
+        newImages.push(...uploadResults.additionalImages);
+      }
+      
       // Update product
       const product = await prisma.product.update({
         where: { id: req.params.id },
@@ -305,15 +330,11 @@ router.put('/:id',
           price: price ? Number(price) : undefined,
           isAvailable,
           ...(uploadResults.mainImage || uploadResults.additionalImages ? {
-            images: [
-              uploadResults.mainImage || existingProduct.images[0],
-              ...(uploadResults.additionalImages || existingProduct.images.slice(1))
-            ].filter(Boolean)
+            images: newImages.filter(Boolean)
           } : {}),
           ...(parsedCategoryIds ? {
             categories: {
-              set: [],
-              connect: parsedCategoryIds.map(id => ({ id }))
+              set: parsedCategoryIds.map(id => ({ id }))
             }
           } : {})
         },

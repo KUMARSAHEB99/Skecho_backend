@@ -21,6 +21,7 @@ router.post(
       console.log('After Multer:', {
         body: req.body,
         files: req.files,
+        
       });
 
       const { bio, categoryIds, pickupAddress, doesCustomArt, customArtPricing, materialOptions } = req.body;
@@ -72,16 +73,8 @@ router.post(
         return res.status(400).json({ error: 'One or more categories not found' });
       }
 
-      // Get user
-      const user = await prisma.user.findUnique({
-        where: {
-          firebaseUid: req.user.uid
-        }
-      });
-
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
+      // The user is already authenticated and available in req.user
+      const { user } = req;
 
       // Process image uploads
       let uploadResults = {};
@@ -99,10 +92,27 @@ router.post(
       const profileImage = uploadResults.profileImage ? 
         (Array.isArray(uploadResults.profileImage) ? uploadResults.profileImage[0] : uploadResults.profileImage) 
         : null;
-
-      // Create pickup address
-      const address = await prisma.address.create({
-        data: {
+        let portfolioImages = uploadResults.portfolioImages || [];
+        if (typeof portfolioImages === 'string') {
+          portfolioImages = [portfolioImages];
+        }
+      // Create or update pickup address
+      const address = await prisma.address.upsert({
+        where: {
+          userId_type: {
+            userId: user.id,
+            type: 'PICKUP',
+          },
+        },
+        update: {
+          pincode: parsedPickupAddress.pincode,
+          addressLine1: parsedPickupAddress.addressLine1,
+          addressLine2: parsedPickupAddress.addressLine2,
+          city: parsedPickupAddress.city,
+          state: parsedPickupAddress.state,
+          country: parsedPickupAddress.country,
+        },
+        create: {
           userId: user.id,
           type: 'PICKUP',
           pincode: parsedPickupAddress.pincode,
@@ -110,14 +120,14 @@ router.post(
           addressLine2: parsedPickupAddress.addressLine2,
           city: parsedPickupAddress.city,
           state: parsedPickupAddress.state,
-          country: parsedPickupAddress.country
-        }
+          country: parsedPickupAddress.country,
+        },
       });
 
       console.log('Creating seller profile with data:', {
         bio,
         profileImage: profileImage,
-        portfolioImages: uploadResults.portfolioImages || [],
+        portfolioImages: portfolioImages || [],
         pickupAddressId: address.id,
         categoryIds: parsedCategoryIds,
         doesCustomArt,
@@ -128,12 +138,12 @@ router.post(
       // Create or update seller profile
       const sellerProfile = await prisma.sellerProfile.upsert({
         where: {
-          userId: user.id
+          userId: user.id,
         },
         update: {
           bio,
           profileImage: profileImage,
-          portfolioImages: uploadResults.portfolioImages || [],
+          portfolioImages: portfolioImages || [],
           pickupAddressId: address.id,
           doesCustomArt: doesCustomArt === 'true',
           customArtPricing: parsedCustomArtPricing,
@@ -146,7 +156,7 @@ router.post(
           userId: user.id,
           bio,
           profileImage: profileImage,
-          portfolioImages: uploadResults.portfolioImages || [],
+          portfolioImages: portfolioImages || [],
           pickupAddressId: address.id,
           doesCustomArt: doesCustomArt === 'true',
           customArtPricing: parsedCustomArtPricing,
@@ -184,28 +194,21 @@ router.post(
 // Get seller profile
 router.get('/profile', authenticateUser, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
+    const sellerProfile = await prisma.sellerProfile.findUnique({
       where: {
-        firebaseUid: req.user.firebaseUid
+        userId: req.user.id,
       },
       include: {
-        sellerProfile: {
-          include: {
-            categories: true
-          }
-        }
-      }
+        categories: true,
+        pickupAddress: true,
+      },
     });
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (!user.sellerProfile) {
+    if (!sellerProfile) {
       return res.status(404).json({ error: 'Seller profile not found' });
     }
 
-    res.json(user.sellerProfile);
+    res.json(sellerProfile);
   } catch (error) {
     console.error('Error fetching seller profile:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -214,14 +217,14 @@ router.get('/profile', authenticateUser, async (req, res) => {
 
 // Check if seller profile is complete
 router.get('/profile-complete', authenticateUser, async (req, res) => {
-  if (!req.user || !req.user.firebaseUid) {
+  if (!req.user || !req.user.id) {
     return res.status(401).json({ error: 'Unauthorized: No user found' });
   }
   try {
     console.log("inside api");
     const user = await prisma.user.findUnique({
       where: {
-        firebaseUid: req.user.firebaseUid
+        id: req.user.id,
       },
       include: {
         sellerProfile: {
@@ -258,40 +261,36 @@ router.get('/profile-complete', authenticateUser, async (req, res) => {
   }
 });
 
+// Get public seller profile by ID
 router.get('/:id', async (req, res) => {
   try {
-    console.log('Fetching seller with ID:', req.params.id);
-    console.log('Database connection status:', prisma ? 'Connected' : 'Not connected');
-    
+    const { id } = req.params;
     const seller = await prisma.sellerProfile.findUnique({
-      where: { id: req.params.id },
+      where: {
+        id: id,
+      },
       include: {
         user: {
           select: {
             name: true,
             email: true,
-            createdAt: true
-          }
-        },
-        products: {
-          orderBy: {
-            createdAt: 'desc'
+            createdAt: true,
           },
+        },
+        categories: true,
+        products: {
           include: {
-            categories: true
-          }
-        }
-      }
+            categories: true,
+          },
+        },
+        pickupAddress: true,
+      },
     });
-    
-    console.log('Query result:', seller);
-    
+
     if (!seller) {
-      console.log('No seller found with ID:', req.params.id);
       return res.status(404).json({ error: 'Seller not found' });
     }
 
-    console.log('Sending seller data');
     res.json(seller);
   } catch (error) {
     console.error('Error details:', {

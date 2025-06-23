@@ -18,12 +18,14 @@ router.post('/complete-profile', authenticateUser, async (req, res) => {
       where: { id: req.user.id },
       data: { phone: phoneNumber },
     });
-
+    
     // Find existing delivery address for this user
-    let deliveryAddress = await prisma.address.findFirst({
+    let deliveryAddress = await prisma.address.findUnique({
       where: {
-        userId: req.user.id,
-        type: 'DELIVERY',
+        userId_type: {
+          userId: req.user.id,
+          type: 'DELIVERY',
+        },
       },
     });
 
@@ -69,12 +71,14 @@ router.get('/profile-complete', authenticateUser, async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
       include: {
-        addresses: true
-      }
+        addresses: {
+          where: { type: 'DELIVERY' },
+        },
+      },
     });
     if (!user) return res.status(404).json({ isComplete: false });
-    const hasPhone = !!user.phoneNumber;
-    const hasDeliveryAddress = user.addresses.some(addr => addr.type === 'DELIVERY');
+    const hasPhone = !!user.phone;
+    const hasDeliveryAddress = user.addresses.length > 0;
     res.json({ isComplete: hasPhone && hasDeliveryAddress });
   } catch (error) {
     console.error('Error checking profile completion:', error);

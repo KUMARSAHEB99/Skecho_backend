@@ -26,19 +26,19 @@ router.get('/', async (req, res) => {
 });
 
 // Create a new category (admin only)
-router.post('/',authenticateUser ,async (req, res) => {
+router.post('/' ,async (req, res) => {
   try {
     const { name, description } = req.body;
 
     // TODO: Add proper admin check here
     // For now, we'll just check if the user is a seller
-    const seller = await prisma.sellerProfile.findFirst({
-      where: { userId: req.user.id }
-    });
+    // const seller = await prisma.sellerProfile.findFirst({
+    //   where: { userId: req.user.id }
+    // });
 
-    if (!seller) {
-      return res.status(403).json({ error: 'Not authorized to create categories' });
-    }
+    // if (!seller) {
+    //   return res.status(403).json({ error: 'Not authorized to create categories' });
+    // }
 
     const category = await prisma.category.create({
       data: {
