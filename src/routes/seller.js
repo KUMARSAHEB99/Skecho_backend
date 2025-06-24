@@ -275,6 +275,7 @@ router.get('/:id', async (req, res) => {
             name: true,
             email: true,
             createdAt: true,
+            firebaseUid:true,
           },
         },
         categories: true,
@@ -311,8 +312,11 @@ router.get('/', async (req, res) => {
       include: {
         user: {
           select: {
+            id: true,
             name: true,
-            createdAt: true
+            email: true,
+            createdAt: true,
+            firebaseUid: true
           }
         },
         products: {

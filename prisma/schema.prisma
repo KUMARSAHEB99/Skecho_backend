@@ -24,6 +24,8 @@ model User {
   addresses        Address[]
   sellerProfile    SellerProfile?
   cart             Cart?
+  orders           Order[]         @relation("UserOrders")
+  artistOrders     Order[]         @relation("ArtistOrders")
 
   @@index([firebaseUid])
 }
@@ -95,6 +97,7 @@ model Product {
   sellerId    String
   categories  Category[]
   cartItems   CartItem[]
+  orders      Order[]
 }
 
 model Cart {
@@ -121,4 +124,49 @@ model CartItem {
   @@unique([cartId, productId])
   @@index([cartId])
   @@index([productId])
+}
+
+// --- Added for Orders ---
+model Order {
+  id              String      @id @default(uuid())
+  type            OrderType
+
+  userId          String
+  user            User        @relation("UserOrders", fields: [userId], references: [id])
+
+  artistId        String
+  artist          User        @relation("ArtistOrders", fields: [artistId], references: [id])
+
+  // For normal orders
+  productId       String?
+  product         Product?    @relation(fields: [productId], references: [id])
+
+  // For custom orders
+  referenceImage  String?
+  description     String?
+  paperSize       String?
+  paperType       String?
+  numPeople       Int?
+  basePrice       Int?
+
+  // Status
+  status          OrderStatus
+  rejectionReason String?
+  deliveryUrl     String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+enum OrderType {
+  product
+  custom
+}
+
+enum OrderStatus {
+  requested
+  accepted
+  rejected
+  paid
+  shipping
+  delivered
 }

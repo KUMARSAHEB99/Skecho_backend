@@ -7,6 +7,7 @@ import categoriesRouter from "./src/routes/categories.js";
 import sellerRouter from "./src/routes/seller.js";
 import cartRouter from "./src/routes/cart.js";
 import userRouter from "./src/routes/user.js";
+import customOrderRouter from "./src/routes/customOrders.js";
 
 dotenv.config();
 const app = express();
@@ -21,4 +22,5 @@ app.use('/api/categories', categoriesRouter);
 app.use('/api/seller', sellerRouter);
 app.use('/api/cart', cartRouter);
 app.use("/api/user",userRouter);
+app.use('/api/custom-orders',customOrderRouter);
 app.listen(3000, () => {console.log("server is running on port 3000")});
