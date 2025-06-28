@@ -23,7 +23,7 @@ jobs:
     - name: Deploy over SSH
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-          cd /var/www/skecho-canvas-collective
+          cd /var/www/Skecho_backend
           git pull origin main
           npm install
           npx prisma generate
