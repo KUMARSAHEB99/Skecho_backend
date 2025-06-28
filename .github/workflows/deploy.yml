@@ -27,6 +27,5 @@ jobs:
           git pull origin main
           npm install
           npx prisma generate
-          npm run build
           pm2 restart project-backend
         EOF
