@@ -23,4 +23,8 @@ app.use('/api/seller', sellerRouter);
 app.use('/api/cart', cartRouter);
 app.use("/api/user",userRouter);
 app.use('/api/custom-orders',customOrderRouter);
+app.use('/api/test',(req,res)=>{
+  return res.status(200).json({ msg: "OK" });
+}
+);
 app.listen(3000, () => {console.log("server is running on port 3000")});
