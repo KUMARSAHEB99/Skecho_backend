@@ -24,10 +24,10 @@ router.post(
         
       });
 
-      const { bio, categoryIds, pickupAddress, doesCustomArt, customArtPricing, materialOptions } = req.body;
+      const { phoneNumber, bio, categoryIds, pickupAddress, doesCustomArt, customArtPricing, materialOptions } = req.body;
 
-      if (!bio || !pickupAddress) {
-        return res.status(400).json({ error: 'Bio and pickup address are required' });
+      if (!phoneNumber || !bio || !pickupAddress) {
+        return res.status(400).json({ error: 'Phone number, bio and pickup address are required' });
       }
 
       // Parse categoryIds, pickupAddress, customArtPricing, and materialOptions if they're strings
@@ -96,6 +96,12 @@ router.post(
         if (typeof portfolioImages === 'string') {
           portfolioImages = [portfolioImages];
         }
+      // Update user's phone number
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { phone: phoneNumber },
+      });
+
       // Create or update pickup address
       const address = await prisma.address.upsert({
         where: {
