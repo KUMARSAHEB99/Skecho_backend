@@ -342,7 +342,8 @@ router.get('/', async (req, res) => {
         }
       }
     });
-
+    console.log("response is ", sellers);
+    
     res.json(sellers);
   } catch (error) {
     console.error('Error fetching featured sellers:', error);

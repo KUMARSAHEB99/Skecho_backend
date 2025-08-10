@@ -8,6 +8,7 @@ import sellerRouter from "./src/routes/seller.js";
 import cartRouter from "./src/routes/cart.js";
 import userRouter from "./src/routes/user.js";
 import customOrderRouter from "./src/routes/customOrders.js";
+import productOrderRouter from "./src/routes/productOrders.js";
 
 dotenv.config();
 const app = express();
@@ -23,6 +24,7 @@ app.use('/api/seller', sellerRouter);
 app.use('/api/cart', cartRouter);
 app.use("/api/user",userRouter);
 app.use('/api/custom-orders',customOrderRouter);
+app.use('/api/product-orders',productOrderRouter);
 app.use('/api/test',(req,res)=>{
   return res.status(200).json({ msg: "OK" });
 }

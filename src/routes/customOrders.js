@@ -80,9 +80,14 @@ router.get('/user/:userId', async (req, res) => {
     const orders = await prisma.order.findMany({
       where: { userId: req.params.userId, type: 'custom' },
       orderBy: { createdAt: 'desc' },
+      include: {
+        artist: { select: { name: true, email: true, id: true } },
+      },
     });
+    console.log('Custom orders for user:', orders);
     res.json(orders);
   } catch (err) {
+    console.error('Error fetching custom orders:', err);
     res.status(500).json({ error: err.message });
   }
 });
